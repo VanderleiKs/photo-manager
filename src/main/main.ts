@@ -1,9 +1,34 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
 import * as path from 'path';
+import * as fs from 'fs';
 import { DatabaseService } from './core/database/database.service';
 import { ScannerService } from './ingestion/scanner/scanner.service';
 import { ThumbnailService } from './core/thumbnails/thumbnail.service';
 import { LoggerService } from './core/logging/logger.service';
+
+// Log de emergência para debug
+const emergencyLog = path.join(process.env['APPDATA'] || process.env['HOME'] || '.', 'photomanager-emergency.log');
+function logEmergency(message: string): void {
+  try {
+    fs.appendFileSync(emergencyLog, `[${new Date().toISOString()}] ${message}\n`);
+  } catch {
+    // Ignorar erros
+  }
+}
+
+process.on('uncaughtException', (error) => {
+  logEmergency(`UNCAUGHT EXCEPTION: ${error.message}\n${error.stack}`);
+  dialog.showErrorBox('Erro Fatal', `Erro não capturado: ${error.message}`);
+  app.quit();
+});
+
+process.on('unhandledRejection', (reason: any) => {
+  logEmergency(`UNHANDLED REJECTION: ${reason?.message || reason}`);
+  dialog.showErrorBox('Erro Fatal', `Promise rejeitada: ${reason?.message || reason}`);
+  app.quit();
+});
+
+logEmergency('App iniciando...');
 
 let mainWindow: BrowserWindow | null = null;
 let dbService: DatabaseService;
@@ -23,7 +48,7 @@ function createWindow(): void {
       nodeIntegration: false,
       sandbox: false
     },
-    icon: path.join(__dirname, '../../assets/icon.ico'),
+    // icon: path.join(__dirname, '../../assets/icon.ico'), // TODO: adicionar icon.ico
     title: 'PhotoManager'
   });
 
@@ -145,11 +170,17 @@ function setupIpcHandlers(): void {
 
 app.whenReady().then(async () => {
   try {
+    logEmergency('App ready, inicializando serviços...');
     await initializeServices();
+    logEmergency('Serviços inicializados, criando janela...');
     setupIpcHandlers();
     createWindow();
-  } catch (error) {
-    console.error('Erro ao inicializar aplicação:', error);
+    logEmergency('Janela criada com sucesso');
+  } catch (error: any) {
+    const msg = `Erro ao inicializar aplicação: ${error?.message || error}\n${error?.stack || ''}`;
+    logEmergency(msg);
+    console.error(msg);
+    dialog.showErrorBox('Erro Fatal', msg);
     app.quit();
   }
 });

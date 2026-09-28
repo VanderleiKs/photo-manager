@@ -76,7 +76,17 @@ export class DatabaseService {
     }
 
     const SQL = await initSqlJs({
-      locateFile: (file: string) => path.join(__dirname, '../../node_modules/sql.js/dist', file)
+      locateFile: (file: string) => {
+        // No build empacotado, os arquivos estão em app.asar/node_modules/sql.js/dist
+        // Fora do asar, estão em node_modules/sql.js/dist relativo ao projeto
+        const isPackaged = __dirname.includes('app.asar');
+        const basePath = isPackaged
+          ? path.join(__dirname, '../../..')
+          : path.join(__dirname, '../../..');
+        const fullPath = path.join(basePath, 'node_modules', 'sql.js', 'dist', file);
+        this.logger.debug('sql.js locateFile', { file, fullPath, isPackaged });
+        return fullPath;
+      }
     });
 
     // Carregar banco existente ou criar novo
