@@ -1,6 +1,15 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ElectronService } from '../../core/services/electron.service';
+
+interface Photo {
+  id: string;
+  filename: string;
+  taken_at: string | null;
+  thumbnail?: string;
+  is_video: boolean;
+  is_favorite: boolean;
+}
 
 @Component({
   selector: 'pm-favorites',
@@ -26,12 +35,17 @@ import { ElectronService } from '../../core/services/electron.service';
       } @else {
         <div class="photos-grid">
           @for (photo of photos(); track photo.id) {
-            <div class="photo-card">
+            <div class="photo-card" (click)="openPhoto(photo)">
               <div class="photo-thumbnail">
                 <img [src]="photo.thumbnail || 'assets/placeholder.png'" [alt]="photo.filename" loading="lazy">
-                <div class="favorite-badge">
+                <div class="favorite-badge" (click)="toggleFavorite(photo, $event)">
                   <i class="pi pi-heart-fill"></i>
                 </div>
+                @if (photo.is_video) {
+                  <div class="video-badge">
+                    <i class="pi pi-play"></i>
+                  </div>
+                }
               </div>
               <div class="photo-info">
                 <span class="photo-name truncate">{{ photo.filename }}</span>
@@ -105,6 +119,23 @@ import { ElectronService } from '../../core/services/electron.service';
       right: 8px;
       color: #ef4444;
       font-size: 16px;
+      cursor: pointer;
+      z-index: 1;
+    }
+
+    .favorite-badge:hover {
+      transform: scale(1.2);
+    }
+
+    .video-badge {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
     }
 
     .photo-info {
@@ -119,7 +150,7 @@ import { ElectronService } from '../../core/services/electron.service';
   `]
 })
 export class FavoritesComponent implements OnInit {
-  photos = signal<any[]>([]);
+  photos = signal<Photo[]>([]);
   loading = signal(true);
 
   constructor(private electron: ElectronService) {}
@@ -133,5 +164,22 @@ export class FavoritesComponent implements OnInit {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  async toggleFavorite(photo: Photo, event: Event): Promise<void> {
+    event.stopPropagation();
+    try {
+      const isFavorite = await this.electron.toggleFavorite(photo.id);
+      photo.is_favorite = isFavorite;
+      if (!isFavorite) {
+        this.photos.update(photos => photos.filter(p => p.id !== photo.id));
+      }
+    } catch (error) {
+      console.error('Erro ao alternar favorito:', error);
+    }
+  }
+
+  openPhoto(photo: Photo): void {
+    console.log('Abrir foto:', photo);
   }
 }

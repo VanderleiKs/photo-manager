@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "outDir": "./dist/preload",
-    "rootDir": "./src/preload",
+    "rootDir": "./src",
     "strict": true,
     "noImplicitOverride": true,
     "noImplicitReturns": true,
