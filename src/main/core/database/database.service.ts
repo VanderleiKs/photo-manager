@@ -81,7 +81,7 @@ export class DatabaseService {
         // Fora do asar, estão em node_modules/sql.js/dist relativo ao projeto
         const isPackaged = __dirname.includes('app.asar');
         const basePath = isPackaged
-          ? path.join(__dirname, '../../..')
+          ? path.join(__dirname, '../../../..')
           : path.join(__dirname, '../../..');
         const fullPath = path.join(basePath, 'node_modules', 'sql.js', 'dist', file);
         this.logger.debug('sql.js locateFile', { file, fullPath, isPackaged });
