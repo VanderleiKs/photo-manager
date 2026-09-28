@@ -89,7 +89,10 @@ async function initializeServices(): Promise<void> {
 function setupIpcHandlers(): void {
   // Selecionar pasta da biblioteca
   ipcMain.handle('dialog:selectFolder', async () => {
-    const result = await dialog.showOpenDialog(mainWindow!, {
+    if (!mainWindow) {
+      throw new Error('Janela principal não disponível');
+    }
+    const result = await dialog.showOpenDialog(mainWindow, {
       properties: ['openDirectory']
     });
     return result.canceled ? null : result.filePaths[0];
@@ -173,8 +176,8 @@ app.whenReady().then(async () => {
     logEmergency('App ready, inicializando serviços...');
     await initializeServices();
     logEmergency('Serviços inicializados, criando janela...');
-    setupIpcHandlers();
     createWindow();
+    setupIpcHandlers();
     logEmergency('Janela criada com sucesso');
   } catch (error: any) {
     const msg = `Erro ao inicializar aplicação: ${error?.message || error}\n${error?.stack || ''}`;
